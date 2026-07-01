@@ -8,11 +8,13 @@ pub struct App {
     pub(crate) screen: CurrentScreen,
     pub(crate) cursor_line: usize,
     pub(crate) list: Vec<(IsFinished, String)>,
+    pub(crate) editing_text: String,
 }
 
 pub(crate) enum CurrentScreen {
     Main,
     Editing,
+    Adding,
     Deleting,
     Exiting,
 }
@@ -22,10 +24,8 @@ impl App {
         Self {
             screen: CurrentScreen::Main,
             cursor_line: 0,
-            list: vec![
-                (false, "Hello, World".into()),
-                (false, "Good morning".into()),
-            ],
+            list: Vec::new(),
+            editing_text: String::new(),
         }
     }
 
@@ -44,13 +44,15 @@ impl App {
 
                 match self.screen {
                     CurrentScreen::Main => self.handle_main_key_event(key),
-                    CurrentScreen::Editing => self.handle_editing_key_event(key),
+                    CurrentScreen::Editing | CurrentScreen::Adding => {
+                        self.handle_editing_key_event(key)
+                    }
                     CurrentScreen::Deleting => match key.code {
-                        KeyCode::Char('y') => {
+                        KeyCode::Enter => {
                             self.list.remove(self.cursor_line);
                             self.screen = CurrentScreen::Main;
                         }
-                        KeyCode::Char('n') => {
+                        KeyCode::Esc => {
                             self.screen = CurrentScreen::Main;
                         }
                         _ => {}
@@ -61,7 +63,7 @@ impl App {
                             break Ok(());
                         }
                         KeyCode::Char('n') => break Ok(()),
-                        KeyCode::Char('c') => self.screen = CurrentScreen::Main,
+                        KeyCode::Esc => self.screen = CurrentScreen::Main,
                         _ => {}
                     },
                 }
@@ -89,20 +91,19 @@ impl App {
                     cursor_line
                 };
             }
-            KeyCode::Char('t') => {
+            KeyCode::Enter => {
                 self.list[self.cursor_line].0 = !self.list[self.cursor_line].0;
             }
             KeyCode::Char('a') => {
-                self.cursor_line = self.list.len();
-                self.list.push((false, String::new()));
-                self.screen = CurrentScreen::Editing;
+                self.screen = CurrentScreen::Adding;
             }
             KeyCode::Char('e') => {
                 if self.list.len() != 0 {
+                    self.editing_text = self.list[self.cursor_line].1.clone();
                     self.screen = CurrentScreen::Editing;
                 }
             }
-            KeyCode::Char('x') => {
+            KeyCode::Char('d') => {
                 self.screen = CurrentScreen::Deleting;
             }
             KeyCode::Char('q') => {
@@ -114,11 +115,28 @@ impl App {
 
     fn handle_editing_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
-            KeyCode::Char(value) => self.list[self.cursor_line].1.push(value),
+            KeyCode::Char(value) => self.editing_text.push(value),
             KeyCode::Backspace => {
-                self.list[self.cursor_line].1.pop();
+                self.editing_text.pop();
             }
-            KeyCode::Enter => self.screen = CurrentScreen::Main,
+            KeyCode::Enter => {
+                match self.screen {
+                    CurrentScreen::Editing => {
+                        std::mem::swap(&mut self.list[self.cursor_line].1, &mut self.editing_text);
+                    }
+                    CurrentScreen::Adding => self
+                        .list
+                        .push((false, std::mem::take(&mut self.editing_text))),
+                    _ => {}
+                }
+                self.editing_text.clear();
+                self.screen = CurrentScreen::Main;
+            }
+            KeyCode::Esc => {
+                self.editing_text.clear();
+                self.screen = CurrentScreen::Main;
+            }
+
             _ => {}
         }
     }

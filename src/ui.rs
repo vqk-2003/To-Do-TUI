@@ -1,84 +1,114 @@
 use ratatui::{
     Frame,
-    layout::Rect,
-    style::{Color, Style, Stylize},
+    style::{Color, Style},
     text::{Line, Span, Text},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph},
+    widgets::{Block, BorderType, Paragraph},
 };
 
 use crate::app::{App, CurrentScreen};
 
+//
 pub fn render(frame: &mut Frame, app: &mut App) {
-    let instruction = Line::from(match app.screen {
-        CurrentScreen::Main => vec![
-            Span::from("(q) to quit"),
-            Span::from(" | "),
-            Span::from("(t) to toggle"),
+    if let CurrentScreen::Main = app.screen {
+        let instruction = Line::from(vec![
+            Span::from("(Enter) to toggle"),
             Span::from(" | "),
             Span::from("(a) to add"),
             Span::from(" | "),
             Span::from("(e) to edit"),
-        ],
-        CurrentScreen::Editing => vec![Span::from("(Enter) to confirm")],
-        CurrentScreen::Deleting => vec![
-            Span::from("(y) to confirm"),
             Span::from(" | "),
-            Span::from("(n) to cancel"),
-        ],
-        CurrentScreen::Exiting => vec![
-            Span::from("(y) to confirm"),
+            Span::from("(d) to edit"),
             Span::from(" | "),
-            Span::from("(n) to cancel"),
-        ],
-    });
+            Span::from("(q) to quit"),
+        ]);
 
-    let border = Block::bordered()
-        .title(Line::from("To Do App").centered())
-        .title_bottom(instruction)
-        .border_type(BorderType::Rounded);
+        let border = Block::bordered()
+            .title_top(Line::from("To Do App").centered())
+            .title_bottom(instruction)
+            .border_type(BorderType::Rounded);
 
-    let text = Text::from(
-        app.list
-            .iter()
-            .enumerate()
-            .map(|x| {
-                if x.0 == app.cursor_line {
-                    Line::from(vec![
-                        if x.1.0 {
-                            Span::from("🗹")
-                        } else {
-                            Span::from("☐")
-                        },
-                        Span::from(" | "),
-                        Span::from(&x.1.1),
-                    ])
-                    .style(Style::default().bg(Color::DarkGray))
-                } else {
-                    Line::from(vec![
-                        if x.1.0 {
-                            Span::from("🗹")
-                        } else {
-                            Span::from("☐")
-                        },
-                        Span::from(" | "),
-                        Span::from(&x.1.1),
-                    ])
-                }
-            })
-            .collect::<Vec<Line>>(),
-    );
+        let text = Text::from(
+            app.list
+                .iter()
+                .enumerate()
+                .map(|x| {
+                    if x.0 == app.cursor_line {
+                        Line::from(vec![
+                            if x.1.0 {
+                                Span::from("🗹")
+                            } else {
+                                Span::from("☐")
+                            },
+                            Span::from(" | "),
+                            Span::from(&x.1.1),
+                        ])
+                        .style(Style::default().bg(Color::DarkGray))
+                    } else {
+                        Line::from(vec![
+                            if x.1.0 {
+                                Span::from("🗹")
+                            } else {
+                                Span::from("☐")
+                            },
+                            Span::from(" | "),
+                            Span::from(&x.1.1),
+                        ])
+                    }
+                })
+                .collect::<Vec<Line>>(),
+        );
 
-    let paragraph = Paragraph::new(text).block(border);
+        let paragraph = Paragraph::new(text).block(border);
 
-    frame.render_widget(paragraph, frame.area());
+        frame.render_widget(paragraph, frame.area());
+    }
 
-    let popup = Rect::new(
-        frame.area().x,
-        frame.area().height / 3,
-        frame.area().width,
-        frame.area().height / 3,
-    );
+    if let CurrentScreen::Editing | CurrentScreen::Adding = app.screen {
+        let instruction = Line::from(vec![
+            Span::from("(Enter) to confirm"),
+            Span::from(" | "),
+            Span::from("(ESC) to cancel"),
+        ]);
 
-    frame.render_widget(Clear, popup);
-    frame.render_widget(Block::bordered(), popup);
+        let border = Block::bordered()
+            .title_top(Line::from("To Do App").centered())
+            .title_bottom(instruction)
+            .border_type(BorderType::Rounded);
+
+        let paragraph = Paragraph::new(app.editing_text.clone()).block(border);
+
+        frame.render_widget(paragraph, frame.area());
+    }
+
+    if let CurrentScreen::Deleting = app.screen {
+        let instruction = Line::from(vec![
+            Span::from("(Enter) to confirm"),
+            Span::from(" | "),
+            Span::from("(ESC) to cancel"),
+        ]);
+
+        let border = Block::bordered()
+            .title_top(Line::from("To Do App").centered())
+            .title_bottom(instruction)
+            .border_type(BorderType::Rounded);
+
+        frame.render_widget(border, frame.area());
+    }
+
+    if let CurrentScreen::Exiting = app.screen {
+        let instruction = Line::from(vec![
+            Span::from("(y) to save"),
+            Span::from(" | "),
+            Span::from("(n) to skip save"),
+            Span::from(" | "),
+            Span::from("(ESC) to cancel"),
+        ]);
+
+        let border = Block::bordered()
+            .title_top(Line::from("To Do App").centered())
+            .title_bottom(instruction)
+            .border_type(BorderType::Rounded);
+
+        frame.render_widget(border, frame.area());
+    }
 }
