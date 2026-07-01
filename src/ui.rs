@@ -75,7 +75,11 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             .title_bottom(instruction)
             .border_type(BorderType::Rounded);
 
-        let paragraph = Paragraph::new(app.editing_text.clone()).block(border);
+        let paragraph = Paragraph::new(Text::from(Line::from(vec![
+            Span::from(app.editing_text.clone()),
+            Span::from("█"),
+        ])))
+        .block(border);
 
         frame.render_widget(paragraph, frame.area());
     }

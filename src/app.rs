@@ -50,6 +50,13 @@ impl App {
                     CurrentScreen::Deleting => match key.code {
                         KeyCode::Enter => {
                             self.list.remove(self.cursor_line);
+                            if self.cursor_line == self.list.len() {
+                                if self.list.len() != 0 {
+                                    self.cursor_line = self.list.len() - 1;
+                                } else {
+                                    self.cursor_line = 0;
+                                }
+                            }
                             self.screen = CurrentScreen::Main;
                         }
                         KeyCode::Esc => {
