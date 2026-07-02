@@ -1,15 +1,19 @@
 use ratatui::{
     Frame,
+    layout::Constraint,
     style::{Color, Style},
     text::{Line, Span, Text},
-    widgets::{Block, BorderType, Paragraph},
+    widgets::{Block, BorderType, Clear, Paragraph, Wrap},
 };
 
 use crate::app::{App, CurrentScreen};
 
-//
 pub fn render(frame: &mut Frame, app: &mut App) {
-    if let CurrentScreen::Main = app.screen {
+    if let CurrentScreen::Main
+    | CurrentScreen::Editing
+    | CurrentScreen::Adding
+    | CurrentScreen::Deleting = app.screen
+    {
         let instruction = Line::from(vec![
             Span::from("(Enter) to toggle"),
             Span::from(" | "),
@@ -58,12 +62,38 @@ pub fn render(frame: &mut Frame, app: &mut App) {
                 .collect::<Vec<Line>>(),
         );
 
-        let paragraph = Paragraph::new(text).block(border);
+        let paragraph = Paragraph::new(text).block(border).wrap(Wrap { trim: true });
 
         frame.render_widget(paragraph, frame.area());
     }
 
     if let CurrentScreen::Editing | CurrentScreen::Adding = app.screen {
+        let popup_area = frame
+            .area()
+            .centered(Constraint::Percentage(80), Constraint::Percentage(30));
+
+        frame.render_widget(Clear, popup_area);
+
+        let border = Block::bordered()
+            .title_top(
+                Line::from(match app.screen {
+                    CurrentScreen::Editing => "Editing",
+                    CurrentScreen::Adding => "Adding",
+                    _ => unreachable!(),
+                })
+                .centered(),
+            )
+            .border_type(BorderType::Rounded);
+
+        let paragraph = Paragraph::new(Text::from(Line::from(vec![
+            Span::from(app.editing_text.clone()),
+            Span::from("█"),
+        ])))
+        .wrap(Wrap { trim: true })
+        .block(border);
+
+        frame.render_widget(paragraph, popup_area);
+
         let instruction = Line::from(vec![
             Span::from("(Enter) to confirm"),
             Span::from(" | "),
@@ -75,16 +105,27 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             .title_bottom(instruction)
             .border_type(BorderType::Rounded);
 
-        let paragraph = Paragraph::new(Text::from(Line::from(vec![
-            Span::from(app.editing_text.clone()),
-            Span::from("█"),
-        ])))
-        .block(border);
-
-        frame.render_widget(paragraph, frame.area());
+        frame.render_widget(border, frame.area());
     }
 
     if let CurrentScreen::Deleting = app.screen {
+        let popup_area = frame
+            .area()
+            .centered(Constraint::Length(40), Constraint::Length(3));
+
+        frame.render_widget(Clear, popup_area);
+
+        let border = Block::bordered()
+            .title_top(Line::from("Deleting").centered())
+            .border_type(BorderType::Rounded);
+
+        let paragraph = Paragraph::new(Text::from(
+            Line::from("Do you want to delete this entry?").centered(),
+        ))
+        .block(border);
+
+        frame.render_widget(paragraph, popup_area);
+
         let instruction = Line::from(vec![
             Span::from("(Enter) to confirm"),
             Span::from(" | "),
@@ -100,6 +141,23 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     }
 
     if let CurrentScreen::Exiting = app.screen {
+        let popup_area = frame
+            .area()
+            .centered(Constraint::Length(40), Constraint::Length(3));
+
+        frame.render_widget(Clear, popup_area);
+
+        let border = Block::bordered()
+            .title_top(Line::from("Exiting").centered())
+            .border_type(BorderType::Rounded);
+
+        let paragraph = Paragraph::new(Text::from(
+            Line::from("Do you want to save this to file? (y/n)").centered(),
+        ))
+        .block(border);
+
+        frame.render_widget(paragraph, popup_area);
+
         let instruction = Line::from(vec![
             Span::from("(y) to save"),
             Span::from(" | "),
