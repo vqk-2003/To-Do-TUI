@@ -38,10 +38,6 @@ impl App {
                     continue;
                 }
 
-                if KeyCode::Char('q') == key.code {
-                    break Ok(());
-                }
-
                 match self.screen {
                     CurrentScreen::Main => self.handle_main_key_event(key),
                     CurrentScreen::Editing | CurrentScreen::Adding => {
