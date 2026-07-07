@@ -1,8 +1,11 @@
+use std::{fs::File, path::Path};
+
 use crate::ui::render;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ratatui::DefaultTerminal;
 
 use bool as IsFinished;
+const SAVE_FILE: &str = "todo_list.json";
 
 pub struct App {
     pub(crate) screen: CurrentScreen,
@@ -24,7 +27,20 @@ impl App {
         Self {
             screen: CurrentScreen::Main,
             cursor_line: 0,
-            list: Vec::new(),
+            list: {
+                let mut list = Vec::new();
+                let path = Path::new(SAVE_FILE);
+                match File::open(path) {
+                    Ok(file) => {
+                        match serde_json::from_reader(file) {
+                            Ok(data) => list = data,
+                            Err(err) => eprintln!("Read file failed: {}", err),
+                        };
+                    }
+                    Err(err) => eprintln!("Open file failed: {}", err),
+                }
+                list
+            },
             editing_text: String::new(),
         }
     }
@@ -144,5 +160,9 @@ impl App {
         }
     }
 
-    fn save_list(&mut self) {}
+    fn save_list(&mut self) {
+        let path = Path::new(SAVE_FILE);
+        let file = File::create(path).unwrap();
+        serde_json::to_writer(file, &self.list).unwrap();
+    }
 }
